@@ -2,6 +2,7 @@ package model
 
 import (
 	jsonv2 "encoding/json/v2"
+	"reflect"
 	"testing"
 	"time"
 
@@ -49,6 +50,82 @@ func prepareTestData() (*JsonChatMessage, *ProtoChatMessage) {
 	}
 
 	return jsonMsg, protoMsg
+}
+
+// / =====================================================================
+// Test: Marshal/Unmarshal Correctness (验证序列化和反序列化的正确性)
+// =====================================================================
+func TestMarshalUnmarshal(t *testing.T) {
+	jsonMsg, protoMsg := prepareTestData()
+	t.Run("JSONv2 Marshal/Unmarshal", func(t *testing.T) {
+		jsonData, err := jsonv2.Marshal(jsonMsg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var jsonTarget JsonChatMessage
+		err = jsonv2.Unmarshal(jsonData, &jsonTarget)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(jsonMsg, &jsonTarget) {
+			t.Errorf("JSONv2 Marshal/Unmarshal mismatch:\nOriginal: %+v\nUnmarshaled: %+v", jsonMsg, &jsonTarget)
+		}
+	})
+
+	t.Run("Proto Marshal/Unmarshal", func(t *testing.T) {
+		protoData, err := proto.Marshal(protoMsg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var protoTarget ProtoChatMessage
+		err = proto.Unmarshal(protoData, &protoTarget)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(protoMsg, &protoTarget) {
+			t.Errorf("Proto Marshal/Unmarshal mismatch:\nOriginal: %+v\nUnmarshaled: %+v", protoMsg, &protoTarget)
+		}
+	})
+
+	t.Run("VTProto Marshal/Unmarshal", func(t *testing.T) {
+		vtData, err := protoMsg.MarshalVT()
+		if err != nil {
+			t.Fatal(err)
+		}
+		var vtTarget ProtoChatMessage
+		err = vtTarget.UnmarshalVT(vtData)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(protoMsg, &vtTarget) {
+			t.Errorf("VTProto Marshal/Unmarshal mismatch:\nOriginal: %+v\nUnmarshaled: %+v", protoMsg, &vtTarget)
+		}
+	})
+}
+
+// =====================================================================
+// Test: Payload Size Comparison (测量序列化后的字节流大小)
+// =====================================================================
+func TestPayloadSize(t *testing.T) {
+	jsonMsg, protoMsg := prepareTestData()
+	jsonData, err := jsonv2.Marshal(jsonMsg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	protoData, err := proto.Marshal(protoMsg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	vtData, err := protoMsg.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("JSONv2  Size : %3d bytes", len(jsonData))
+	t.Logf("Proto   Size : %3d bytes", len(protoData))
+	t.Logf("VTProto Size : %3d bytes", len(vtData))
+	if len(protoData) != len(vtData) {
+		t.Errorf("Proto and VTProto sizes mismatch: %d vs %d", len(protoData), len(vtData))
+	}
 }
 
 // =====================================================================
