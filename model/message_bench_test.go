@@ -17,7 +17,7 @@ func prepareTestData() (*JsonChatMessage, *ProtoChatMessage) {
 	senderID := uuid.New()
 	receiverID := uuid.New()
 	replyToMsgID := uuid.New()
-	now := time.Now()
+	now := time.Now().UTC()
 	payloadBytes := []byte(`{"content":"hello world","mentions":["user1","user2"],"is_rich":true}`)
 	extBytes := []byte(`{"source":"ios","version":"1.0.0"}`)
 
@@ -82,7 +82,7 @@ func TestMarshalUnmarshal(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(protoMsg, &protoTarget) {
+		if !proto.Equal(protoMsg, &protoTarget) {
 			t.Errorf("Proto Marshal/Unmarshal mismatch:\nOriginal: %+v\nUnmarshaled: %+v", protoMsg, &protoTarget)
 		}
 	})
@@ -97,7 +97,7 @@ func TestMarshalUnmarshal(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(protoMsg, &vtTarget) {
+		if !proto.Equal(protoMsg, &vtTarget) {
 			t.Errorf("VTProto Marshal/Unmarshal mismatch:\nOriginal: %+v\nUnmarshaled: %+v", protoMsg, &vtTarget)
 		}
 	})
