@@ -7,22 +7,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// type ChatType string
-
-// const (
-// 	ChatTypeSingle ChatType = "single"
-// 	ChatTypeGroup  ChatType = "group"
-// )
-
-// type MessageType string
-
-// const (
-// 	MessageTypeText  MessageType = "text"
-// 	MessageTypeImage MessageType = "image"
-// 	MessageTypeVideo MessageType = "video"
-// 	MessageTypeFile  MessageType = "file"
-// )
-
 type JsonChatMessage struct {
 	MsgID        uuid.UUID      `json:"msg_id"`
 	ClientMsgID  uuid.UUID      `json:"client_msg_id"`

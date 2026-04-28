@@ -11,6 +11,7 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb1 "google.golang.org/protobuf/types/known/timestamppb"
 	io "io"
+	sync "sync"
 )
 
 const (
@@ -127,6 +128,40 @@ func (m *ProtoChatMessage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+var vtprotoPool_ProtoChatMessage = sync.Pool{
+	New: func() interface{} {
+		return &ProtoChatMessage{}
+	},
+}
+
+func (m *ProtoChatMessage) ResetVT() {
+	if m != nil {
+		f0 := m.MsgId[:0]
+		f1 := m.ClientMsgId[:0]
+		f2 := m.SenderId[:0]
+		f3 := m.ReceiverId[:0]
+		f4 := m.ReplyToMsgId[:0]
+		f5 := m.Payload[:0]
+		f6 := m.Ext[:0]
+		m.Reset()
+		m.MsgId = f0
+		m.ClientMsgId = f1
+		m.SenderId = f2
+		m.ReceiverId = f3
+		m.ReplyToMsgId = f4
+		m.Payload = f5
+		m.Ext = f6
+	}
+}
+func (m *ProtoChatMessage) ReturnToVTPool() {
+	if m != nil {
+		m.ResetVT()
+		vtprotoPool_ProtoChatMessage.Put(m)
+	}
+}
+func ProtoChatMessageFromVTPool() *ProtoChatMessage {
+	return vtprotoPool_ProtoChatMessage.Get().(*ProtoChatMessage)
+}
 func (m *ProtoChatMessage) SizeVT() (n int) {
 	if m == nil {
 		return 0

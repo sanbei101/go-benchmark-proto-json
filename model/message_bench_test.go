@@ -154,3 +154,23 @@ func BenchmarkUnmarshal_VTProto(b *testing.B) {
 		}
 	}
 }
+
+func BenchmarkUnmarshal_VTPool(b *testing.B) {
+	_, protoMsg := prepareTestData()
+	data, err := protoMsg.MarshalVT()
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for b.Loop() {
+		target := ProtoChatMessageFromVTPool()
+		err := target.UnmarshalVT(data)
+		if err != nil {
+			b.Fatal(err)
+		}
+		target.ReturnToVTPool()
+	}
+}
