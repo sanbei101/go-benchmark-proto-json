@@ -44,8 +44,6 @@ func (m *JsonChatMessage) Reset() {
 	m.ServerTime = 0
 	m.ReplyToMsgID = nil
 	m.MsgType = ""
-
-	// 核心：复用底层数组，长度置 0，容量保留
 	if m.Payload != nil {
 		m.Payload = m.Payload[:0]
 	}
@@ -54,27 +52,18 @@ func (m *JsonChatMessage) Reset() {
 	}
 }
 
-// Marshal 将结构体编码为紧凑的 []byte
 func (m *JsonChatMessage) Marshal() ([]byte, error) {
-	// 1. 预计算总容量，避免切片在 append 时频繁扩容（极致性能）
-	// MsgID(16) + ClientMsgID(16) + SenderID(16) + RoomID(16) + ServerTime(8)
-	// + ReplyToMsgID Flag(1) = 73 字节的固定长度
 	size := 16*4 + 8 + 1
 
 	if m.ReplyToMsgID != nil {
 		size += 16
 	}
-
-	// 可变长度计算: MsgType(2字节长度 + 内容), Payload(4字节长度 + 内容), Ext(4字节长度 + 内容)
 	size += 2 + len(m.MsgType)
 	size += 4 + len(m.Payload)
 	size += 4 + len(m.Ext)
 
-	// 2. 分配精确大小的内存
 	buf := make([]byte, size)
 	offset := 0
-
-	// 3. 依次写入数据
 	copy(buf[offset:], m.MsgID[:])
 	offset += 16
 	copy(buf[offset:], m.ClientMsgID[:])
@@ -87,7 +76,6 @@ func (m *JsonChatMessage) Marshal() ([]byte, error) {
 	binary.BigEndian.PutUint64(buf[offset:], uint64(m.ServerTime))
 	offset += 8
 
-	// 处理指针
 	if m.ReplyToMsgID != nil {
 		buf[offset] = 1
 		offset += 1
@@ -97,14 +85,11 @@ func (m *JsonChatMessage) Marshal() ([]byte, error) {
 		buf[offset] = 0
 		offset += 1
 	}
-
-	// 处理字符串
 	binary.BigEndian.PutUint16(buf[offset:], uint16(len(m.MsgType)))
 	offset += 2
 	copy(buf[offset:], m.MsgType)
 	offset += len(m.MsgType)
 
-	// 处理 jsontext.Value ([]byte)
 	binary.BigEndian.PutUint32(buf[offset:], uint32(len(m.Payload)))
 	offset += 4
 	copy(buf[offset:], m.Payload)
@@ -118,14 +103,11 @@ func (m *JsonChatMessage) Marshal() ([]byte, error) {
 	return buf, nil
 }
 
-// Unmarshal 从 []byte 还原结构体 (配合 Pool 使用)
 func (m *JsonChatMessage) Unmarshal(data []byte) error {
 	if len(data) < 83 {
 		return errors.New("data too short")
 	}
 	offset := 0
-
-	// 1. 固定长度读取 (同前)
 	copy(m.MsgID[:], data[offset:offset+16])
 	offset += 16
 	copy(m.ClientMsgID[:], data[offset:offset+16])
@@ -138,7 +120,6 @@ func (m *JsonChatMessage) Unmarshal(data []byte) error {
 	m.ServerTime = int64(binary.BigEndian.Uint64(data[offset : offset+8]))
 	offset += 8
 
-	// 2. 指针读取
 	if data[offset] == 1 {
 		offset += 1
 		if len(data) < offset+16 {
@@ -153,24 +134,21 @@ func (m *JsonChatMessage) Unmarshal(data []byte) error {
 		m.ReplyToMsgID = nil
 	}
 
-	// 3. MsgType
 	msgTypeLen := int(binary.BigEndian.Uint16(data[offset : offset+2]))
 	offset += 2
 	m.MsgType = string(data[offset : offset+msgTypeLen])
 	offset += msgTypeLen
 
-	// 4. 读取 Payload (复用容量)
 	payloadLen := int(binary.BigEndian.Uint32(data[offset : offset+4]))
 	offset += 4
 	if cap(m.Payload) >= payloadLen {
-		m.Payload = m.Payload[:payloadLen] // 容量够，直接切片扩充长度
+		m.Payload = m.Payload[:payloadLen]
 	} else {
-		m.Payload = make(jsontext.Value, payloadLen) // 容量不够才 make
+		m.Payload = make(jsontext.Value, payloadLen)
 	}
 	copy(m.Payload, data[offset:offset+payloadLen])
 	offset += payloadLen
 
-	// 5. 读取 Ext (复用容量)
 	extLen := int(binary.BigEndian.Uint32(data[offset : offset+4]))
 	offset += 4
 	if cap(m.Ext) >= extLen {
