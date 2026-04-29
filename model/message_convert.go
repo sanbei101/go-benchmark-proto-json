@@ -11,6 +11,7 @@ func (j *JsonChatMessage) ToProto(pb *ProtoChatMessage) *ProtoChatMessage {
 	pb.MsgId = j.MsgID[:]
 	pb.ClientMsgId = j.ClientMsgID[:]
 	pb.SenderId = j.SenderID[:]
+	pb.RoomId = j.RoomID[:]
 	if j.ReplyToMsgID != nil {
 		pb.ReplyToMsgId = j.ReplyToMsgID[:]
 	} else {
