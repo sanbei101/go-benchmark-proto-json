@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"encoding/json/jsontext"
 	"errors"
-	sync "sync"
-	unsafe "unsafe"
+	"sync"
+	"unsafe"
 
 	"github.com/google/uuid"
 )
@@ -136,7 +136,6 @@ func (m *JsonChatMessage) Unmarshal(data []byte) error {
 	msgTypeLen := int(binary.BigEndian.Uint16(data[offset : offset+2]))
 	offset += 2
 	m.MsgType = unsafe.String(unsafe.SliceData(data[offset:offset+msgTypeLen]), msgTypeLen)
-	offset += msgTypeLen
 	offset += msgTypeLen
 
 	payloadLen := int(binary.BigEndian.Uint32(data[offset : offset+4]))
