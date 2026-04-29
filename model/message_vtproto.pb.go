@@ -7,9 +7,7 @@ package model
 import (
 	fmt "fmt"
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
-	timestamppb "github.com/planetscale/vtprotobuf/types/known/timestamppb"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	timestamppb1 "google.golang.org/protobuf/types/known/timestamppb"
 	io "io"
 	sync "sync"
 )
@@ -51,16 +49,6 @@ func (m *ProtoChatMessage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.CreatedAt != nil {
-		size, err := (*timestamppb.Timestamp)(m.CreatedAt).MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x5a
-	}
 	if len(m.Ext) > 0 {
 		i -= len(m.Ext)
 		copy(dAtA[i:], m.Ext)
@@ -75,10 +63,12 @@ func (m *ProtoChatMessage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x4a
 	}
-	if m.MsgType != 0 {
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.MsgType))
+	if len(m.MsgType) > 0 {
+		i -= len(m.MsgType)
+		copy(dAtA[i:], m.MsgType)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.MsgType)))
 		i--
-		dAtA[i] = 0x40
+		dAtA[i] = 0x42
 	}
 	if m.ReplyToMsgId != nil {
 		i -= len(m.ReplyToMsgId)
@@ -92,15 +82,10 @@ func (m *ProtoChatMessage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x30
 	}
-	if m.ChatType != 0 {
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ChatType))
-		i--
-		dAtA[i] = 0x28
-	}
-	if len(m.ReceiverId) > 0 {
-		i -= len(m.ReceiverId)
-		copy(dAtA[i:], m.ReceiverId)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ReceiverId)))
+	if len(m.RoomId) > 0 {
+		i -= len(m.RoomId)
+		copy(dAtA[i:], m.RoomId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RoomId)))
 		i--
 		dAtA[i] = 0x22
 	}
@@ -139,7 +124,7 @@ func (m *ProtoChatMessage) ResetVT() {
 		f0 := m.MsgId[:0]
 		f1 := m.ClientMsgId[:0]
 		f2 := m.SenderId[:0]
-		f3 := m.ReceiverId[:0]
+		f3 := m.RoomId[:0]
 		f4 := m.ReplyToMsgId[:0]
 		f5 := m.Payload[:0]
 		f6 := m.Ext[:0]
@@ -147,7 +132,7 @@ func (m *ProtoChatMessage) ResetVT() {
 		m.MsgId = f0
 		m.ClientMsgId = f1
 		m.SenderId = f2
-		m.ReceiverId = f3
+		m.RoomId = f3
 		m.ReplyToMsgId = f4
 		m.Payload = f5
 		m.Ext = f6
@@ -180,12 +165,9 @@ func (m *ProtoChatMessage) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
-	l = len(m.ReceiverId)
+	l = len(m.RoomId)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
-	if m.ChatType != 0 {
-		n += 1 + protohelpers.SizeOfVarint(uint64(m.ChatType))
 	}
 	if m.ServerTime != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.ServerTime))
@@ -194,8 +176,9 @@ func (m *ProtoChatMessage) SizeVT() (n int) {
 		l = len(m.ReplyToMsgId)
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
-	if m.MsgType != 0 {
-		n += 1 + protohelpers.SizeOfVarint(uint64(m.MsgType))
+	l = len(m.MsgType)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	l = len(m.Payload)
 	if l > 0 {
@@ -203,10 +186,6 @@ func (m *ProtoChatMessage) SizeVT() (n int) {
 	}
 	l = len(m.Ext)
 	if l > 0 {
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
-	if m.CreatedAt != nil {
-		l = (*timestamppb.Timestamp)(m.CreatedAt).SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -346,7 +325,7 @@ func (m *ProtoChatMessage) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ReceiverId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field RoomId", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -373,30 +352,11 @@ func (m *ProtoChatMessage) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ReceiverId = append(m.ReceiverId[:0], dAtA[iNdEx:postIndex]...)
-			if m.ReceiverId == nil {
-				m.ReceiverId = []byte{}
+			m.RoomId = append(m.RoomId[:0], dAtA[iNdEx:postIndex]...)
+			if m.RoomId == nil {
+				m.RoomId = []byte{}
 			}
 			iNdEx = postIndex
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ChatType", wireType)
-			}
-			m.ChatType = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.ChatType |= ChatType(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
 		case 6:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ServerTime", wireType)
@@ -451,10 +411,10 @@ func (m *ProtoChatMessage) UnmarshalVT(dAtA []byte) error {
 			}
 			iNdEx = postIndex
 		case 8:
-			if wireType != 0 {
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MsgType", wireType)
 			}
-			m.MsgType = 0
+			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return protohelpers.ErrIntOverflow
@@ -464,11 +424,24 @@ func (m *ProtoChatMessage) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.MsgType |= MessageType(b&0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.MsgType = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		case 9:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Payload", wireType)
@@ -535,42 +508,6 @@ func (m *ProtoChatMessage) UnmarshalVT(dAtA []byte) error {
 			m.Ext = append(m.Ext[:0], dAtA[iNdEx:postIndex]...)
 			if m.Ext == nil {
 				m.Ext = []byte{}
-			}
-			iNdEx = postIndex
-		case 11:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CreatedAt", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.CreatedAt == nil {
-				m.CreatedAt = &timestamppb1.Timestamp{}
-			}
-			if err := (*timestamppb.Timestamp)(m.CreatedAt).UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
 			}
 			iNdEx = postIndex
 		default:

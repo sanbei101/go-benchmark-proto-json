@@ -9,7 +9,6 @@ package model
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -22,123 +21,17 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type ChatType int32
-
-const (
-	ChatType_CHAT_TYPE_UNSPECIFIED ChatType = 0
-	ChatType_CHAT_TYPE_SINGLE      ChatType = 1
-	ChatType_CHAT_TYPE_GROUP       ChatType = 2
-)
-
-// Enum value maps for ChatType.
-var (
-	ChatType_name = map[int32]string{
-		0: "CHAT_TYPE_UNSPECIFIED",
-		1: "CHAT_TYPE_SINGLE",
-		2: "CHAT_TYPE_GROUP",
-	}
-	ChatType_value = map[string]int32{
-		"CHAT_TYPE_UNSPECIFIED": 0,
-		"CHAT_TYPE_SINGLE":      1,
-		"CHAT_TYPE_GROUP":       2,
-	}
-)
-
-func (x ChatType) Enum() *ChatType {
-	p := new(ChatType)
-	*p = x
-	return p
-}
-
-func (x ChatType) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (ChatType) Descriptor() protoreflect.EnumDescriptor {
-	return file_model_message_proto_enumTypes[0].Descriptor()
-}
-
-func (ChatType) Type() protoreflect.EnumType {
-	return &file_model_message_proto_enumTypes[0]
-}
-
-func (x ChatType) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use ChatType.Descriptor instead.
-func (ChatType) EnumDescriptor() ([]byte, []int) {
-	return file_model_message_proto_rawDescGZIP(), []int{0}
-}
-
-type MessageType int32
-
-const (
-	MessageType_MESSAGE_TYPE_UNSPECIFIED MessageType = 0
-	MessageType_MESSAGE_TYPE_TEXT        MessageType = 1
-	MessageType_MESSAGE_TYPE_IMAGE       MessageType = 2
-	MessageType_MESSAGE_TYPE_VIDEO       MessageType = 3
-	MessageType_MESSAGE_TYPE_FILE        MessageType = 4
-)
-
-// Enum value maps for MessageType.
-var (
-	MessageType_name = map[int32]string{
-		0: "MESSAGE_TYPE_UNSPECIFIED",
-		1: "MESSAGE_TYPE_TEXT",
-		2: "MESSAGE_TYPE_IMAGE",
-		3: "MESSAGE_TYPE_VIDEO",
-		4: "MESSAGE_TYPE_FILE",
-	}
-	MessageType_value = map[string]int32{
-		"MESSAGE_TYPE_UNSPECIFIED": 0,
-		"MESSAGE_TYPE_TEXT":        1,
-		"MESSAGE_TYPE_IMAGE":       2,
-		"MESSAGE_TYPE_VIDEO":       3,
-		"MESSAGE_TYPE_FILE":        4,
-	}
-)
-
-func (x MessageType) Enum() *MessageType {
-	p := new(MessageType)
-	*p = x
-	return p
-}
-
-func (x MessageType) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (MessageType) Descriptor() protoreflect.EnumDescriptor {
-	return file_model_message_proto_enumTypes[1].Descriptor()
-}
-
-func (MessageType) Type() protoreflect.EnumType {
-	return &file_model_message_proto_enumTypes[1]
-}
-
-func (x MessageType) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use MessageType.Descriptor instead.
-func (MessageType) EnumDescriptor() ([]byte, []int) {
-	return file_model_message_proto_rawDescGZIP(), []int{1}
-}
-
 type ProtoChatMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	MsgId         []byte                 `protobuf:"bytes,1,opt,name=msg_id,json=msgId,proto3" json:"msg_id,omitempty"`
 	ClientMsgId   []byte                 `protobuf:"bytes,2,opt,name=client_msg_id,json=clientMsgId,proto3" json:"client_msg_id,omitempty"`
 	SenderId      []byte                 `protobuf:"bytes,3,opt,name=sender_id,json=senderId,proto3" json:"sender_id,omitempty"`
-	ReceiverId    []byte                 `protobuf:"bytes,4,opt,name=receiver_id,json=receiverId,proto3" json:"receiver_id,omitempty"`
-	ChatType      ChatType               `protobuf:"varint,5,opt,name=chat_type,json=chatType,proto3,enum=chat.ChatType" json:"chat_type,omitempty"`
+	RoomId        []byte                 `protobuf:"bytes,4,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
 	ServerTime    int64                  `protobuf:"varint,6,opt,name=server_time,json=serverTime,proto3" json:"server_time,omitempty"`
 	ReplyToMsgId  []byte                 `protobuf:"bytes,7,opt,name=reply_to_msg_id,json=replyToMsgId,proto3,oneof" json:"reply_to_msg_id,omitempty"`
-	MsgType       MessageType            `protobuf:"varint,8,opt,name=msg_type,json=msgType,proto3,enum=chat.MessageType" json:"msg_type,omitempty"`
+	MsgType       string                 `protobuf:"bytes,8,opt,name=msg_type,json=msgType,proto3" json:"msg_type,omitempty"`
 	Payload       []byte                 `protobuf:"bytes,9,opt,name=payload,proto3" json:"payload,omitempty"`
 	Ext           []byte                 `protobuf:"bytes,10,opt,name=ext,proto3" json:"ext,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -194,18 +87,11 @@ func (x *ProtoChatMessage) GetSenderId() []byte {
 	return nil
 }
 
-func (x *ProtoChatMessage) GetReceiverId() []byte {
+func (x *ProtoChatMessage) GetRoomId() []byte {
 	if x != nil {
-		return x.ReceiverId
+		return x.RoomId
 	}
 	return nil
-}
-
-func (x *ProtoChatMessage) GetChatType() ChatType {
-	if x != nil {
-		return x.ChatType
-	}
-	return ChatType_CHAT_TYPE_UNSPECIFIED
 }
 
 func (x *ProtoChatMessage) GetServerTime() int64 {
@@ -222,11 +108,11 @@ func (x *ProtoChatMessage) GetReplyToMsgId() []byte {
 	return nil
 }
 
-func (x *ProtoChatMessage) GetMsgType() MessageType {
+func (x *ProtoChatMessage) GetMsgType() string {
 	if x != nil {
 		return x.MsgType
 	}
-	return MessageType_MESSAGE_TYPE_UNSPECIFIED
+	return ""
 }
 
 func (x *ProtoChatMessage) GetPayload() []byte {
@@ -243,45 +129,24 @@ func (x *ProtoChatMessage) GetExt() []byte {
 	return nil
 }
 
-func (x *ProtoChatMessage) GetCreatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.CreatedAt
-	}
-	return nil
-}
-
 var File_model_message_proto protoreflect.FileDescriptor
 
 const file_model_message_proto_rawDesc = "" +
 	"\n" +
-	"\x13model/message.proto\x12\x04chat\x1a\x1fgoogle/protobuf/timestamp.proto\"\xae\x03\n" +
+	"\x13model/message.proto\x12\x04chat\"\xab\x02\n" +
 	"\x10ProtoChatMessage\x12\x15\n" +
 	"\x06msg_id\x18\x01 \x01(\fR\x05msgId\x12\"\n" +
 	"\rclient_msg_id\x18\x02 \x01(\fR\vclientMsgId\x12\x1b\n" +
-	"\tsender_id\x18\x03 \x01(\fR\bsenderId\x12\x1f\n" +
-	"\vreceiver_id\x18\x04 \x01(\fR\n" +
-	"receiverId\x12+\n" +
-	"\tchat_type\x18\x05 \x01(\x0e2\x0e.chat.ChatTypeR\bchatType\x12\x1f\n" +
+	"\tsender_id\x18\x03 \x01(\fR\bsenderId\x12\x17\n" +
+	"\aroom_id\x18\x04 \x01(\fR\x06roomId\x12\x1f\n" +
 	"\vserver_time\x18\x06 \x01(\x03R\n" +
 	"serverTime\x12*\n" +
-	"\x0freply_to_msg_id\x18\a \x01(\fH\x00R\freplyToMsgId\x88\x01\x01\x12,\n" +
-	"\bmsg_type\x18\b \x01(\x0e2\x11.chat.MessageTypeR\amsgType\x12\x18\n" +
+	"\x0freply_to_msg_id\x18\a \x01(\fH\x00R\freplyToMsgId\x88\x01\x01\x12\x19\n" +
+	"\bmsg_type\x18\b \x01(\tR\amsgType\x12\x18\n" +
 	"\apayload\x18\t \x01(\fR\apayload\x12\x10\n" +
 	"\x03ext\x18\n" +
-	" \x01(\fR\x03ext\x129\n" +
-	"\n" +
-	"created_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAtB\x12\n" +
-	"\x10_reply_to_msg_id*P\n" +
-	"\bChatType\x12\x19\n" +
-	"\x15CHAT_TYPE_UNSPECIFIED\x10\x00\x12\x14\n" +
-	"\x10CHAT_TYPE_SINGLE\x10\x01\x12\x13\n" +
-	"\x0fCHAT_TYPE_GROUP\x10\x02*\x89\x01\n" +
-	"\vMessageType\x12\x1c\n" +
-	"\x18MESSAGE_TYPE_UNSPECIFIED\x10\x00\x12\x15\n" +
-	"\x11MESSAGE_TYPE_TEXT\x10\x01\x12\x16\n" +
-	"\x12MESSAGE_TYPE_IMAGE\x10\x02\x12\x16\n" +
-	"\x12MESSAGE_TYPE_VIDEO\x10\x03\x12\x15\n" +
-	"\x11MESSAGE_TYPE_FILE\x10\x04B\tZ\a./modelb\x06proto3"
+	" \x01(\fR\x03extB\x12\n" +
+	"\x10_reply_to_msg_idB\tZ\a./modelb\x06proto3"
 
 var (
 	file_model_message_proto_rawDescOnce sync.Once
@@ -295,23 +160,16 @@ func file_model_message_proto_rawDescGZIP() []byte {
 	return file_model_message_proto_rawDescData
 }
 
-var file_model_message_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_model_message_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_model_message_proto_goTypes = []any{
-	(ChatType)(0),                 // 0: chat.ChatType
-	(MessageType)(0),              // 1: chat.MessageType
-	(*ProtoChatMessage)(nil),      // 2: chat.ProtoChatMessage
-	(*timestamppb.Timestamp)(nil), // 3: google.protobuf.Timestamp
+	(*ProtoChatMessage)(nil), // 0: chat.ProtoChatMessage
 }
 var file_model_message_proto_depIdxs = []int32{
-	0, // 0: chat.ProtoChatMessage.chat_type:type_name -> chat.ChatType
-	1, // 1: chat.ProtoChatMessage.msg_type:type_name -> chat.MessageType
-	3, // 2: chat.ProtoChatMessage.created_at:type_name -> google.protobuf.Timestamp
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	0, // [0:0] is the sub-list for method output_type
+	0, // [0:0] is the sub-list for method input_type
+	0, // [0:0] is the sub-list for extension type_name
+	0, // [0:0] is the sub-list for extension extendee
+	0, // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_model_message_proto_init() }
@@ -325,14 +183,13 @@ func file_model_message_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_model_message_proto_rawDesc), len(file_model_message_proto_rawDesc)),
-			NumEnums:      2,
+			NumEnums:      0,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_model_message_proto_goTypes,
 		DependencyIndexes: file_model_message_proto_depIdxs,
-		EnumInfos:         file_model_message_proto_enumTypes,
 		MessageInfos:      file_model_message_proto_msgTypes,
 	}.Build()
 	File_model_message_proto = out.File

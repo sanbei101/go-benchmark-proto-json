@@ -8,14 +8,13 @@ import (
 
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func prepareTestData() (*JsonChatMessage, *ProtoChatMessage) {
 	msgID := uuid.New()
 	clientMsgID := uuid.New()
 	senderID := uuid.New()
-	receiverID := uuid.New()
+	roomID := uuid.New()
 	replyToMsgID := uuid.New()
 	now := time.Now().UTC()
 	payloadBytes := []byte(`{"content":"hello world","mentions":["user1","user2"],"is_rich":true}`)
@@ -25,28 +24,24 @@ func prepareTestData() (*JsonChatMessage, *ProtoChatMessage) {
 		MsgID:        msgID,
 		ClientMsgID:  clientMsgID,
 		SenderID:     senderID,
-		ReceiverID:   receiverID,
-		ChatType:     ChatType_CHAT_TYPE_SINGLE,
+		RoomID:       roomID,
 		ServerTime:   now.UnixMilli(),
 		ReplyToMsgID: &replyToMsgID,
-		MsgType:      MessageType_MESSAGE_TYPE_TEXT,
+		MsgType:      "text",
 		Payload:      payloadBytes,
 		Ext:          extBytes,
-		CreatedAt:    now,
 	}
 
 	protoMsg := &ProtoChatMessage{
 		MsgId:        msgID[:],
 		ClientMsgId:  clientMsgID[:],
 		SenderId:     senderID[:],
-		ReceiverId:   receiverID[:],
-		ChatType:     ChatType_CHAT_TYPE_SINGLE,
+		RoomId:       roomID[:],
 		ServerTime:   now.UnixMilli(),
 		ReplyToMsgId: replyToMsgID[:],
-		MsgType:      MessageType_MESSAGE_TYPE_TEXT,
+		MsgType:      "text",
 		Payload:      payloadBytes,
 		Ext:          extBytes,
-		CreatedAt:    timestamppb.New(now),
 	}
 
 	return jsonMsg, protoMsg

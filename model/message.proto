@@ -2,38 +2,18 @@ syntax = "proto3";
 
 package chat;
 
-import "google/protobuf/timestamp.proto";
-
 option go_package = "./model";
-
-enum ChatType {
-  CHAT_TYPE_UNSPECIFIED = 0;
-  CHAT_TYPE_SINGLE = 1;
-  CHAT_TYPE_GROUP = 2;
-}
-
-enum MessageType {
-  MESSAGE_TYPE_UNSPECIFIED = 0;
-  MESSAGE_TYPE_TEXT = 1;
-  MESSAGE_TYPE_IMAGE = 2;
-  MESSAGE_TYPE_VIDEO = 3;
-  MESSAGE_TYPE_FILE = 4;
-}
 
 message ProtoChatMessage {
   bytes msg_id = 1;
   bytes client_msg_id = 2;
   bytes sender_id = 3;
-  bytes receiver_id = 4;
-
-  ChatType chat_type = 5;
+  bytes room_id = 4;
 
   int64 server_time = 6;
   optional bytes reply_to_msg_id = 7;
 
-  MessageType msg_type = 8;
+  string msg_type = 8;
   bytes payload = 9;
   bytes ext = 10;
-
-  google.protobuf.Timestamp created_at = 11;
 }
