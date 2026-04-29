@@ -145,158 +145,131 @@ func TestPayloadSize(t *testing.T) {
 	}
 }
 
-// =====================================================================
-// Benchmark: Marshal (序列化)
-// =====================================================================
-
-func BenchmarkMarshal_JSONv2(b *testing.B) {
-	jsonMsg, _ := prepareTestData()
-	b.ReportAllocs()
-	b.ResetTimer()
-
-	for b.Loop() {
-		_, err := jsonv2.Marshal(jsonMsg)
-		if err != nil {
-			b.Fatal(err)
+func BenchmarkMarshal(b *testing.B) {
+	jsonMsg, protoMsg := prepareTestData()
+	b.Run("JSONv2 Marshal", func(b *testing.B) {
+		b.ReportAllocs()
+		b.ResetTimer()
+		for b.Loop() {
+			_, err := jsonv2.Marshal(jsonMsg)
+			if err != nil {
+				b.Fatal(err)
+			}
 		}
-	}
+	})
+
+	b.Run("Proto Marshal", func(b *testing.B) {
+		b.ReportAllocs()
+		b.ResetTimer()
+		for b.Loop() {
+			_, err := proto.Marshal(protoMsg)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("VTProto Marshal", func(b *testing.B) {
+		b.ReportAllocs()
+		b.ResetTimer()
+		for b.Loop() {
+			_, err := protoMsg.MarshalVT()
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("手写 Marshal", func(b *testing.B) {
+		b.ReportAllocs()
+		b.ResetTimer()
+		for b.Loop() {
+			_, err := jsonMsg.Marshal()
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
 }
 
-func BenchmarkMarshal_Proto(b *testing.B) {
-	_, protoMsg := prepareTestData()
-	b.ReportAllocs()
-	b.ResetTimer()
+func BenchmarkUnmarshal(b *testing.B) {
+	jsonMsg, protoMsg := prepareTestData()
+	jsonData, _ := jsonv2.Marshal(jsonMsg)
+	protoData, _ := proto.Marshal(protoMsg)
+	vtData, _ := protoMsg.MarshalVT()
+	encodeData, _ := jsonMsg.Marshal()
 
-	for b.Loop() {
-		_, err := proto.Marshal(protoMsg)
-		if err != nil {
-			b.Fatal(err)
+	b.Run("JSONv2 Unmarshal", func(b *testing.B) {
+		b.ReportAllocs()
+		b.ResetTimer()
+		for b.Loop() {
+			var target JsonChatMessage
+			err := jsonv2.Unmarshal(jsonData, &target)
+			if err != nil {
+				b.Fatal(err)
+			}
 		}
-	}
-}
+	})
 
-func BenchmarkMarshal_VTProto(b *testing.B) {
-	_, protoMsg := prepareTestData()
-	b.ReportAllocs()
-	b.ResetTimer()
-
-	for b.Loop() {
-		_, err := protoMsg.MarshalVT()
-		if err != nil {
-			b.Fatal(err)
+	b.Run("Proto Unmarshal", func(b *testing.B) {
+		b.ReportAllocs()
+		b.ResetTimer()
+		for b.Loop() {
+			var target ProtoChatMessage
+			err := proto.Unmarshal(protoData, &target)
+			if err != nil {
+				b.Fatal(err)
+			}
 		}
-	}
-}
+	})
 
-func BenchmarkMarshal_Encode(b *testing.B) {
-	jsonMsg, _ := prepareTestData()
-	b.ReportAllocs()
-	b.ResetTimer()
-
-	for b.Loop() {
-		_, err := jsonMsg.Marshal()
-		if err != nil {
-			b.Fatal(err)
+	b.Run("VTProto Unmarshal", func(b *testing.B) {
+		b.ReportAllocs()
+		b.ResetTimer()
+		for b.Loop() {
+			var target ProtoChatMessage
+			err := target.UnmarshalVT(vtData)
+			if err != nil {
+				b.Fatal(err)
+			}
 		}
-	}
-}
+	})
 
-// =====================================================================
-// Benchmark: Unmarshal (反序列化)
-// =====================================================================
-
-func BenchmarkUnmarshal_JSONv2(b *testing.B) {
-	jsonMsg, _ := prepareTestData()
-	data, err := jsonv2.Marshal(jsonMsg)
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	b.ReportAllocs()
-	b.ResetTimer()
-
-	for b.Loop() {
-		var target JsonChatMessage
-		err := jsonv2.Unmarshal(data, &target)
-		if err != nil {
-			b.Fatal(err)
+	b.Run("VTProto Unmarshal with Pool", func(b *testing.B) {
+		b.ReportAllocs()
+		b.ResetTimer()
+		for b.Loop() {
+			target := ProtoChatMessageFromVTPool()
+			err := target.UnmarshalVT(vtData)
+			if err != nil {
+				b.Fatal(err)
+			}
+			target.ReturnToVTPool()
 		}
-	}
-}
+	})
 
-func BenchmarkUnmarshal_Proto(b *testing.B) {
-	_, protoMsg := prepareTestData()
-	data, err := proto.Marshal(protoMsg)
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	b.ReportAllocs()
-	b.ResetTimer()
-
-	for b.Loop() {
-		var target ProtoChatMessage
-		err := proto.Unmarshal(data, &target)
-		if err != nil {
-			b.Fatal(err)
+	b.Run("手写 Unmarshal", func(b *testing.B) {
+		b.ReportAllocs()
+		b.ResetTimer()
+		for b.Loop() {
+			var target JsonChatMessage
+			err := target.Unmarshal(encodeData)
+			if err != nil {
+				b.Fatal(err)
+			}
 		}
-	}
-}
+	})
 
-func BenchmarkUnmarshal_VTProto(b *testing.B) {
-	_, protoMsg := prepareTestData()
-	data, err := protoMsg.MarshalVT()
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	b.ReportAllocs()
-	b.ResetTimer()
-
-	for b.Loop() {
-		var target ProtoChatMessage
-		err := target.UnmarshalVT(data)
-		if err != nil {
-			b.Fatal(err)
+	b.Run("手写 Unmarshal with Pool", func(b *testing.B) {
+		b.ReportAllocs()
+		b.ResetTimer()
+		for b.Loop() {
+			target := AcquireMessage()
+			err := target.Unmarshal(encodeData)
+			if err != nil {
+				b.Fatal(err)
+			}
+			ReleaseMessage(target)
 		}
-	}
-}
-
-func BenchmarkUnmarshal_VTPool(b *testing.B) {
-	_, protoMsg := prepareTestData()
-	data, err := protoMsg.MarshalVT()
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	b.ReportAllocs()
-	b.ResetTimer()
-
-	for b.Loop() {
-		target := ProtoChatMessageFromVTPool()
-		err := target.UnmarshalVT(data)
-		if err != nil {
-			b.Fatal(err)
-		}
-		target.ReturnToVTPool()
-	}
-}
-
-func BenchmarkUnmarshal_Decode(b *testing.B) {
-	jsonMsg, _ := prepareTestData()
-	data, err := jsonMsg.Marshal()
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	b.ReportAllocs()
-	b.ResetTimer()
-
-	for b.Loop() {
-		var target JsonChatMessage
-		err := target.Unmarshal(data)
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
+	})
 }

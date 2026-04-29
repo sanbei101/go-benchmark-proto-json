@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json/jsontext"
 	"errors"
+	sync "sync"
 
 	"github.com/google/uuid"
 )
@@ -18,6 +19,39 @@ type JsonChatMessage struct {
 	MsgType      string         `json:"msg_type"`
 	Payload      jsontext.Value `json:"payload"`
 	Ext          jsontext.Value `json:"ext"`
+}
+
+var MessagePool = sync.Pool{
+	New: func() any {
+		return &JsonChatMessage{}
+	},
+}
+
+func AcquireMessage() *JsonChatMessage {
+	return MessagePool.Get().(*JsonChatMessage)
+}
+
+func ReleaseMessage(m *JsonChatMessage) {
+	m.Reset()
+	MessagePool.Put(m)
+}
+
+func (m *JsonChatMessage) Reset() {
+	m.MsgID = uuid.UUID{}
+	m.ClientMsgID = uuid.UUID{}
+	m.SenderID = uuid.UUID{}
+	m.RoomID = uuid.UUID{}
+	m.ServerTime = 0
+	m.ReplyToMsgID = nil
+	m.MsgType = ""
+
+	// 核心：复用底层数组，长度置 0，容量保留
+	if m.Payload != nil {
+		m.Payload = m.Payload[:0]
+	}
+	if m.Ext != nil {
+		m.Ext = m.Ext[:0]
+	}
 }
 
 // Marshal 将结构体编码为紧凑的 []byte
@@ -84,15 +118,14 @@ func (m *JsonChatMessage) Marshal() ([]byte, error) {
 	return buf, nil
 }
 
-// Unmarshal 从 []byte 还原结构体
+// Unmarshal 从 []byte 还原结构体 (配合 Pool 使用)
 func (m *JsonChatMessage) Unmarshal(data []byte) error {
-	// 基础长度校验 (至少需要 73 字节的固定头部信息 + 2+4+4的长度标识 = 83 字节)
 	if len(data) < 83 {
-		return errors.New("data too short to be a valid JsonChatMessage")
+		return errors.New("data too short")
 	}
 	offset := 0
 
-	// 1. 依次读取固定长度数据
+	// 1. 固定长度读取 (同前)
 	copy(m.MsgID[:], data[offset:offset+16])
 	offset += 16
 	copy(m.ClientMsgID[:], data[offset:offset+16])
@@ -105,60 +138,46 @@ func (m *JsonChatMessage) Unmarshal(data []byte) error {
 	m.ServerTime = int64(binary.BigEndian.Uint64(data[offset : offset+8]))
 	offset += 8
 
-	// 2. 读取指针标识位
-	hasReply := data[offset]
-	offset += 1
-	if hasReply == 1 {
+	// 2. 指针读取
+	if data[offset] == 1 {
+		offset += 1
 		if len(data) < offset+16 {
 			return errors.New("data too short for ReplyToMsgID")
 		}
-		var id uuid.UUID
+		id := uuid.UUID{}
 		copy(id[:], data[offset:offset+16])
 		offset += 16
 		m.ReplyToMsgID = &id
 	} else {
+		offset += 1
 		m.ReplyToMsgID = nil
 	}
 
-	// 3. 读取 MsgType
-	if len(data) < offset+2 {
-		return errors.New("data too short for MsgType length")
-	}
+	// 3. MsgType
 	msgTypeLen := int(binary.BigEndian.Uint16(data[offset : offset+2]))
 	offset += 2
-
-	if len(data) < offset+msgTypeLen {
-		return errors.New("data too short for MsgType content")
-	}
 	m.MsgType = string(data[offset : offset+msgTypeLen])
 	offset += msgTypeLen
 
-	// 4. 读取 Payload
-	if len(data) < offset+4 {
-		return errors.New("data too short for Payload length")
-	}
+	// 4. 读取 Payload (复用容量)
 	payloadLen := int(binary.BigEndian.Uint32(data[offset : offset+4]))
 	offset += 4
-
-	if len(data) < offset+payloadLen {
-		return errors.New("data too short for Payload content")
+	if cap(m.Payload) >= payloadLen {
+		m.Payload = m.Payload[:payloadLen] // 容量够，直接切片扩充长度
+	} else {
+		m.Payload = make(jsontext.Value, payloadLen) // 容量不够才 make
 	}
-	// 分配新内存并复制，防止底层的 data 被 MQ 回收或复用导致数据错乱
-	m.Payload = make(jsontext.Value, payloadLen)
 	copy(m.Payload, data[offset:offset+payloadLen])
 	offset += payloadLen
 
-	// 5. 读取 Ext
-	if len(data) < offset+4 {
-		return errors.New("data too short for Ext length")
-	}
+	// 5. 读取 Ext (复用容量)
 	extLen := int(binary.BigEndian.Uint32(data[offset : offset+4]))
 	offset += 4
-
-	if len(data) < offset+extLen {
-		return errors.New("data too short for Ext content")
+	if cap(m.Ext) >= extLen {
+		m.Ext = m.Ext[:extLen]
+	} else {
+		m.Ext = make(jsontext.Value, extLen)
 	}
-	m.Ext = make(jsontext.Value, extLen)
 	copy(m.Ext, data[offset:offset+extLen])
 	offset += extLen
 
