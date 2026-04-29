@@ -5,6 +5,7 @@ import (
 	"encoding/json/jsontext"
 	"errors"
 	sync "sync"
+	unsafe "unsafe"
 
 	"github.com/google/uuid"
 )
@@ -122,13 +123,11 @@ func (m *JsonChatMessage) Unmarshal(data []byte) error {
 
 	if data[offset] == 1 {
 		offset += 1
-		if len(data) < offset+16 {
-			return errors.New("data too short for ReplyToMsgID")
+		if m.ReplyToMsgID == nil {
+			m.ReplyToMsgID = new(uuid.UUID)
 		}
-		id := uuid.UUID{}
-		copy(id[:], data[offset:offset+16])
+		copy((*m.ReplyToMsgID)[:], data[offset:offset+16])
 		offset += 16
-		m.ReplyToMsgID = &id
 	} else {
 		offset += 1
 		m.ReplyToMsgID = nil
@@ -136,7 +135,8 @@ func (m *JsonChatMessage) Unmarshal(data []byte) error {
 
 	msgTypeLen := int(binary.BigEndian.Uint16(data[offset : offset+2]))
 	offset += 2
-	m.MsgType = string(data[offset : offset+msgTypeLen])
+	m.MsgType = unsafe.String(unsafe.SliceData(data[offset:offset+msgTypeLen]), msgTypeLen)
+	offset += msgTypeLen
 	offset += msgTypeLen
 
 	payloadLen := int(binary.BigEndian.Uint32(data[offset : offset+4]))
