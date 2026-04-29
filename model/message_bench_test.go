@@ -96,6 +96,22 @@ func TestMarshalUnmarshal(t *testing.T) {
 			t.Errorf("VTProto Marshal/Unmarshal mismatch:\nOriginal: %+v\nUnmarshaled: %+v", protoMsg, &vtTarget)
 		}
 	})
+
+	t.Run("手写 Marshal/Unmarshal", func(t *testing.T) {
+		jsonData, err := jsonMsg.Marshal()
+		if err != nil {
+			t.Fatal(err)
+		}
+		var jsonTarget JsonChatMessage
+		err = jsonTarget.Unmarshal(jsonData)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(jsonMsg, &jsonTarget) {
+			t.Errorf("手写 Marshal/Unmarshal mismatch:\nOriginal: %+v\nUnmarshaled: %+v", jsonMsg, &jsonTarget)
+		}
+	})
+
 }
 
 // =====================================================================
@@ -115,9 +131,15 @@ func TestPayloadSize(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	encodeData, err := jsonMsg.Marshal()
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Logf("JSONv2  Size : %3d bytes", len(jsonData))
 	t.Logf("Proto   Size : %3d bytes", len(protoData))
 	t.Logf("VTProto Size : %3d bytes", len(vtData))
+	t.Logf("手写    Size : %3d bytes", len(encodeData))
+
 	if len(protoData) != len(vtData) {
 		t.Errorf("Proto and VTProto sizes mismatch: %d vs %d", len(protoData), len(vtData))
 	}
@@ -160,6 +182,19 @@ func BenchmarkMarshal_VTProto(b *testing.B) {
 
 	for b.Loop() {
 		_, err := protoMsg.MarshalVT()
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkMarshal_Encode(b *testing.B) {
+	jsonMsg, _ := prepareTestData()
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for b.Loop() {
+		_, err := jsonMsg.Marshal()
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -244,5 +279,24 @@ func BenchmarkUnmarshal_VTPool(b *testing.B) {
 			b.Fatal(err)
 		}
 		target.ReturnToVTPool()
+	}
+}
+
+func BenchmarkUnmarshal_Decode(b *testing.B) {
+	jsonMsg, _ := prepareTestData()
+	data, err := jsonMsg.Marshal()
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for b.Loop() {
+		var target JsonChatMessage
+		err := target.Unmarshal(data)
+		if err != nil {
+			b.Fatal(err)
+		}
 	}
 }
