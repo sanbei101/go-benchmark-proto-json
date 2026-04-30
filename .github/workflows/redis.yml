@@ -1,9 +1,9 @@
-name: Redis vs Valkey
+name: Redis测试
 on:
   workflow_dispatch:
   push:
     paths:
-      - ".github/workflows/redis-vs-valkey.yml"
+      - ".github/workflows/redis.yml"
 
 jobs:
   benchmark:
@@ -18,21 +18,15 @@ jobs:
         run: |
           wget https://github.com/redis/memtier_benchmark/releases/download/2.3.0/memtier-benchmark_2.3.0.noble_amd64.deb
           sudo apt install ./memtier-benchmark_2.3.0.noble_amd64.deb
-          
-      - name: Show Docker versions
-        run: |
-          docker version
-          docker compose version
-
+        
       - name: Pull latest images
         run: |
           docker pull redis:latest
-          docker pull valkey/valkey:latest
 
       - name: Start Redis and Valkey
         run: |
           docker network create bench-net || true
-          docker rm -f redis-bench valkey-bench || true
+          docker rm -f redis-bench || true
 
           docker run -d --name redis-bench \
             --network bench-net \
@@ -40,21 +34,15 @@ jobs:
             redis:latest \
             redis-server --save '' --appendonly no
 
-          docker run -d --name valkey-bench \
-            --network bench-net \
-            -p 6380:6379 \
-            valkey/valkey:latest \
-            valkey-server --save '' --appendonly no
-
       - name: Wait for services
         run: |
-          for i in $(seq 1 30); do
-            if docker exec redis-bench redis-cli ping && docker exec valkey-bench valkey-cli ping; then
+          for i in $(seq 1 10); do
+            if docker exec redis-bench redis-cli ping; then
               exit 0
             fi
             sleep 1
           done
-          echo "Redis or Valkey is not ready in time"
+          echo "Redis is not ready in time"
           exit 1
 
       - name: Benchmark Redis
@@ -70,33 +58,14 @@ jobs:
   
           memtier_benchmark \
               --server=127.0.0.1 --port=6379 --protocol=redis \
-              --threads=4 --clients=1 --requests=10000 \
-              --pipeline=16 \
+              --threads=4 --clients=1 --requests=100000 \
+              --pipeline=1000 \
               --command="XADD stream:test * field1 __data__" \
               --command-ratio=1 \
               --command="XREADGROUP GROUP g1 c1 COUNT 1000 STREAMS stream:test >" \
               --command-ratio=5 \
               --hide-histogram | tee benchmark-results/redis-stream.txt
-
-      - name: Benchmark Valkey
-        run: |
-          memtier_benchmark \
-            --server=127.0.0.1 --port=6380 --protocol=redis \
-            --threads=4 --clients=1 --requests=10000 \
-            --data-size=256 --ratio=1:10 --pipeline=16 \
-            --hide-histogram | tee benchmark-results/valkey.txt
-
-          docker exec valkey-bench valkey-cli XGROUP CREATE stream:test g1 '$' MKSTREAM
-
-          memtier_benchmark \
-            --server=127.0.0.1 --port=6380 --protocol=redis \
-            --threads=4 --clients=1 --requests=10000 \
-            --command="XADD stream:test * field1 __data__" \
-            --command-ratio=1 \
-            --command="XREADGROUP GROUP g1 c1 COUNT 1000 STREAMS stream:test >" \
-            --command-ratio=5 \
-            --hide-histogram | tee benchmark-results/valkey-stream.txt
-
+          
       - name: Show Redis results
         run: |
           echo "## Redis Results" >> "$GITHUB_STEP_SUMMARY"
@@ -108,19 +77,8 @@ jobs:
           cat benchmark-results/redis-stream.txt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
-      - name: Show Valkey results
-        run: |
-          echo "## Valkey Results" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          cat benchmark-results/valkey.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "## Valkey Stream Results" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          cat benchmark-results/valkey-stream.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-
       - name: Cleanup
         if: always()
         run: |
-          docker rm -f redis-bench valkey-bench || true
+          docker rm -f redis-bench || true
           docker network rm bench-net || true
