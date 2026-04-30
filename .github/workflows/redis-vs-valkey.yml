@@ -74,7 +74,8 @@ jobs:
             --key-minimum=1 --key-maximum=1000 \
             --command="XADD stream:__key__ * field1 __data__" \
             --command="XRANGE stream:__key__ - + COUNT 10" \
-            --command-ratio=1:5 | tee benchmark-results/redis-stream.txt
+            --command-ratio=1:5 \
+            ----hide-histogram | tee benchmark-results/redis-stream.txt
           
 
       - name: Benchmark Valkey
@@ -91,13 +92,17 @@ jobs:
             --key-minimum=1 --key-maximum=1000 \
             --command="XADD stream:__key__ * field1 __data__" \
             --command="XRANGE stream:__key__ - + COUNT 10" \
-            --command-ratio=1:5 | tee benchmark-results/valkey-stream.txt
+            --command-ratio=1:5 \
+            --hide-histogram | tee benchmark-results/valkey-stream.txt
 
       - name: Show Redis results
         run: |
           echo "## Redis Results" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> $GITHUB_STEP_SUMMARY
           cat benchmark-results/redis.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "## Redis Stream Results" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> $GITHUB_STEP_SUMMARY
           cat benchmark-results/redis-stream.txt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
@@ -106,6 +111,9 @@ jobs:
           echo "## Valkey Results" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> $GITHUB_STEP_SUMMARY
           cat benchmark-results/valkey.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "## Valkey Stream Results" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> $GITHUB_STEP_SUMMARY
           cat benchmark-results/valkey-stream.txt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
