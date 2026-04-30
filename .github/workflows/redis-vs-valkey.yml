@@ -17,7 +17,7 @@ jobs:
       - name: Install benchmark tools
         run: |
           wget https://github.com/redis/memtier_benchmark/releases/download/2.3.0/memtier-benchmark_2.3.0.noble_amd64.deb
-          sudo dpkg -i memtier-benchmark_2.3.0.noble_amd64.deb
+          sudo apt install ./memtier-benchmark_2.3.0.noble_amd64.deb
           
       - name: Show Docker versions
         run: |
