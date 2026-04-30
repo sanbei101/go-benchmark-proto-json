@@ -67,7 +67,7 @@ jobs:
             --hide-histogram | tee benchmark-results/redis.txt
 
           for i in $(seq 1 1000); do
-            docker exec redis-bench redis-cli XGROUP CREATE stream:$i g1 '$' MKSTREAM
+            docker exec redis-bench redis-cli XGROUP CREATE stream:$i g1 '$' MKSTREAM > /dev/null
           done
 
           memtier_benchmark \
@@ -88,7 +88,7 @@ jobs:
             --hide-histogram | tee benchmark-results/valkey.txt
 
           for i in $(seq 1 1000); do
-            docker exec valkey-bench valkey-cli XGROUP CREATE stream:$i g1 '$' MKSTREAM
+            docker exec valkey-bench valkey-cli XGROUP CREATE stream:$i g1 '$' MKSTREAM > /dev/null
           done
 
           memtier_benchmark \
