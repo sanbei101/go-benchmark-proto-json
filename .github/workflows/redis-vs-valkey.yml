@@ -62,11 +62,11 @@ jobs:
       - name: Benchmark Redis
         run: |
           mkdir -p benchmark-results
-          echo "## Redis Benchmark" > "$GITHUB_STEP_SUMMARY"
           memtier_benchmark \
             --server=127.0.0.1 --port=6379 --protocol=redis \
             --threads=4 --clients=50 --requests=10000 \
-            --data-size=256 --ratio=1:10 --pipeline=16 | tee benchmark-results/redis.txt
+            --data-size=256 --ratio=1:10 --pipeline=16 \
+            --hide-histogram | tee benchmark-results/redis.txt
 
           memtier_benchmark \
             --server=127.0.0.1 --port=6379 --protocol=redis \
@@ -74,26 +74,26 @@ jobs:
             --key-minimum=1 --key-maximum=1000 \
             --command="XADD stream:__key__ * field1 __data__" \
             --command="XRANGE stream:__key__ - + COUNT 10" \
-            --command-ratio=1:5 \
-            ----hide-histogram | tee benchmark-results/redis-stream.txt
+            --ratio=1:5 \
+            --hide-histogram | tee benchmark-results/redis-stream.txt
           
 
       - name: Benchmark Valkey
         run: |
-          echo "## Valkey Benchmark" >> "$GITHUB_STEP_SUMMARY"
           memtier_benchmark \
             --server=127.0.0.1 --port=6380 --protocol=redis \
             --threads=4 --clients=50 --requests=10000 \
-            --data-size=256 --ratio=1:10 --pipeline=16 | tee benchmark-results/valkey.txt
+            --data-size=256 --ratio=1:10 --pipeline=16 \
+            --hide-histogram | tee benchmark-results/valkey.txt
 
           memtier_benchmark \
-            --server=127.0.0.1 --port=6380 --protocol=redis \
-            --threads=4 --clients=50 --requests=10000 \
-            --key-minimum=1 --key-maximum=1000 \
-            --command="XADD stream:__key__ * field1 __data__" \
-            --command="XRANGE stream:__key__ - + COUNT 10" \
-            --command-ratio=1:5 \
-            --hide-histogram | tee benchmark-results/valkey-stream.txt
+              --server=127.0.0.1 --port=6380 --protocol=redis \
+              --threads=4 --clients=50 --requests=10000 \
+              --key-minimum=1 --key-maximum=1000 \
+              --command="XADD stream:__key__ * field1 __data__" \
+              --command="XRANGE stream:__key__ - + COUNT 10" \
+              --ratio=1:5 \
+              --hide-histogram | tee benchmark-results/valkey-stream.txt
 
       - name: Show Redis results
         run: |
