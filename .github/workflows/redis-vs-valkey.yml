@@ -105,14 +105,14 @@ jobs:
 
           md = f"""# Redis vs Valkey benchmark
 
-| Engine | Ops/sec | p95 latency | p99 latency | KB/sec |
-|---|---:|---:|---:|---:|
-| Redis | {redis['ops']} | {redis['p95']} ms | {redis['p99']} ms | {redis['kbsec']} |
-| Valkey | {valkey['ops']} | {valkey['p95']} ms | {valkey['p99']} ms | {valkey['kbsec']} |
+          | Engine | Ops/sec | p95 latency | p99 latency | KB/sec |
+          |---|---:|---:|---:|---:|
+          | Redis | {redis['ops']} | {redis['p95']} ms | {redis['p99']} ms | {redis['kbsec']} |
+          | Valkey | {valkey['ops']} | {valkey['p95']} ms | {valkey['p99']} ms | {valkey['kbsec']} |
 
-- Valkey vs Redis Ops/sec delta: **{pct(redis['ops'], valkey['ops'])}**
-- Valkey vs Redis p95 latency delta: **{pct(redis['p95'], valkey['p95'])}**
-"""
+          - Valkey vs Redis Ops/sec delta: **{pct(redis['ops'], valkey['ops'])}**
+          - Valkey vs Redis p95 latency delta: **{pct(redis['p95'], valkey['p95'])}**
+          """
           pathlib.Path("benchmark-results/summary.md").write_text(md)
           PY
 
