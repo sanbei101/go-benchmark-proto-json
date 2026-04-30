@@ -1,0 +1,131 @@
+name: Redis vs Valkey
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/redis-vs-valkey.yml"
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install benchmark tools
+        run: |
+          sudo apt update
+          sudo apt install -y memtier-benchmark jq
+
+      - name: Show Docker versions
+        run: |
+          docker version
+          docker compose version
+
+      - name: Pull latest images
+        run: |
+          docker pull redis:latest
+          docker pull valkey/valkey:latest
+
+      - name: Start Redis and Valkey
+        run: |
+          docker network create bench-net || true
+          docker rm -f redis-bench valkey-bench || true
+
+          docker run -d --name redis-bench \
+            --network bench-net \
+            -p 6379:6379 \
+            redis:latest \
+            redis-server --save '' --appendonly no
+
+          docker run -d --name valkey-bench \
+            --network bench-net \
+            -p 6380:6379 \
+            valkey/valkey:latest \
+            valkey-server --save '' --appendonly no
+
+      - name: Wait for services
+        run: |
+          for i in $(seq 1 30); do
+            if docker exec redis-bench redis-cli ping && docker exec valkey-bench valkey-cli ping; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Redis or Valkey is not ready in time"
+          exit 1
+
+      - name: Benchmark Redis
+        run: |
+          mkdir -p benchmark-results
+          memtier_benchmark \
+            --server=127.0.0.1 --port=6379 --protocol=redis \
+            --threads=4 --clients=50 --requests=10000 \
+            --data-size=256 --ratio=1:10 --pipeline=16 \
+            --hide-histogram \
+            --json-out-file=benchmark-results/redis.json \
+            2>&1 | tee benchmark-results/redis.txt
+
+      - name: Benchmark Valkey
+        run: |
+          memtier_benchmark \
+            --server=127.0.0.1 --port=6380 --protocol=redis \
+            --threads=4 --clients=50 --requests=10000 \
+            --data-size=256 --ratio=1:10 --pipeline=16 \
+            --hide-histogram \
+            --json-out-file=benchmark-results/valkey.json \
+            2>&1 | tee benchmark-results/valkey.txt
+
+      - name: Build markdown summary
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, pathlib
+
+          def load(path):
+              data = json.loads(pathlib.Path(path).read_text())
+              stats = data.get("ALL STATS", data)
+              totals = stats.get("Totals", {})
+              return {
+                  "ops": totals.get("Ops/sec"),
+                  "p95": totals.get("Latency p95"),
+                  "p99": totals.get("Latency p99"),
+                  "kbsec": totals.get("KB/sec"),
+              }
+
+          redis = load("benchmark-results/redis.json")
+          valkey = load("benchmark-results/valkey.json")
+
+          def pct(old, new):
+              if old in (None, 0) or new is None:
+                  return "n/a"
+              return f"{((new - old) / old) * 100:.2f}%"
+
+          md = f"""# Redis vs Valkey benchmark
+
+| Engine | Ops/sec | p95 latency | p99 latency | KB/sec |
+|---|---:|---:|---:|---:|
+| Redis | {redis['ops']} | {redis['p95']} ms | {redis['p99']} ms | {redis['kbsec']} |
+| Valkey | {valkey['ops']} | {valkey['p95']} ms | {valkey['p99']} ms | {valkey['kbsec']} |
+
+- Valkey vs Redis Ops/sec delta: **{pct(redis['ops'], valkey['ops'])}**
+- Valkey vs Redis p95 latency delta: **{pct(redis['p95'], valkey['p95'])}**
+"""
+          pathlib.Path("benchmark-results/summary.md").write_text(md)
+          PY
+
+          cat benchmark-results/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: redis-valkey-benchmark-results
+          path: benchmark-results/
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker rm -f redis-bench valkey-bench || true
+          docker network rm bench-net || true
