@@ -71,6 +71,7 @@ jobs:
           memtier_benchmark \
               --server=127.0.0.1 --port=6379 --protocol=redis \
               --threads=4 --clients=1 --requests=10000 \
+              --pipeline=16 \
               --command="XADD stream:test * field1 __data__" \
               --command-ratio=1 \
               --command="XREADGROUP GROUP g1 c1 COUNT 1000 STREAMS stream:test >" \
@@ -90,7 +91,6 @@ jobs:
           memtier_benchmark \
             --server=127.0.0.1 --port=6380 --protocol=redis \
             --threads=4 --clients=1 --requests=10000 \
-            --key-minimum=1 --key-maximum=1000 \
             --command="XADD stream:test * field1 __data__" \
             --command-ratio=1 \
             --command="XREADGROUP GROUP g1 c1 COUNT 1000 STREAMS stream:test >" \
