@@ -62,69 +62,52 @@ jobs:
       - name: Benchmark Redis
         run: |
           mkdir -p benchmark-results
+          echo "## Redis Benchmark" > "$GITHUB_STEP_SUMMARY"
           memtier_benchmark \
             --server=127.0.0.1 --port=6379 --protocol=redis \
             --threads=4 --clients=50 --requests=10000 \
-            --data-size=256 --ratio=1:10 --pipeline=16 \
-            --hide-histogram \
-            --json-out-file=benchmark-results/redis.json \
-            2>&1 | tee benchmark-results/redis.txt
+            --data-size=256 --ratio=1:10 --pipeline=16 | tee benchmark-results/redis.txt
+
+          memtier_benchmark \
+            --server=127.0.0.1 --port=6379 --protocol=redis \
+            --threads=4 --clients=50 --requests=10000 \
+            --key-minimum=1 --key-maximum=1000 \
+            --command="XADD stream:__key__ * field1 __data__" \
+            --command="XRANGE stream:__key__ - + COUNT 10" \
+            --command-ratio=1:5 | tee benchmark-results/redis-stream.txt
+          
 
       - name: Benchmark Valkey
         run: |
+          echo "## Valkey Benchmark" >> "$GITHUB_STEP_SUMMARY"
           memtier_benchmark \
             --server=127.0.0.1 --port=6380 --protocol=redis \
             --threads=4 --clients=50 --requests=10000 \
-            --data-size=256 --ratio=1:10 --pipeline=16 \
-            --hide-histogram \
-            --json-out-file=benchmark-results/valkey.json \
-            2>&1 | tee benchmark-results/valkey.txt
+            --data-size=256 --ratio=1:10 --pipeline=16 | tee benchmark-results/valkey.txt
 
-      - name: Build markdown summary
-        shell: bash
+          memtier_benchmark \
+            --server=127.0.0.1 --port=6380 --protocol=redis \
+            --threads=4 --clients=50 --requests=10000 \
+            --key-minimum=1 --key-maximum=1000 \
+            --command="XADD stream:__key__ * field1 __data__" \
+            --command="XRANGE stream:__key__ - + COUNT 10" \
+            --command-ratio=1:5 | tee benchmark-results/valkey-stream.txt
+
+      - name: Show Redis results
         run: |
-          python3 - <<'PY'
-          import json, pathlib
+          echo "## Redis Results" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat benchmark-results/redis.txt >> $GITHUB_STEP_SUMMARY
+          cat benchmark-results/redis-stream.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
-          def load(path):
-              data = json.loads(pathlib.Path(path).read_text())
-              stats = data.get("ALL STATS", data)
-              totals = stats.get("Totals", {})
-              return {
-                  "ops": totals.get("Ops/sec"),
-                  "p95": totals.get("Latency p95"),
-                  "p99": totals.get("Latency p99"),
-                  "kbsec": totals.get("KB/sec"),
-              }
-
-          redis = load("benchmark-results/redis.json")
-          valkey = load("benchmark-results/valkey.json")
-
-          def pct(old, new):
-              if old in (None, 0) or new is None:
-                  return "n/a"
-              return f"{((new - old) / old) * 100:.2f}%"
-
-          md = f"""# Redis vs Valkey benchmark
-
-          | Engine | Ops/sec | p95 latency | p99 latency | KB/sec |
-          |---|---:|---:|---:|---:|
-          | Redis | {redis['ops']} | {redis['p95']} ms | {redis['p99']} ms | {redis['kbsec']} |
-          | Valkey | {valkey['ops']} | {valkey['p95']} ms | {valkey['p99']} ms | {valkey['kbsec']} |
-
-          - Valkey vs Redis Ops/sec delta: **{pct(redis['ops'], valkey['ops'])}**
-          - Valkey vs Redis p95 latency delta: **{pct(redis['p95'], valkey['p95'])}**
-          """
-          pathlib.Path("benchmark-results/summary.md").write_text(md)
-          PY
-
-          cat benchmark-results/summary.md >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v6
-        with:
-          name: redis-valkey-benchmark-results
-          path: benchmark-results/
+      - name: Show Valkey results
+        run: |
+          echo "## Valkey Results" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat benchmark-results/valkey.txt >> $GITHUB_STEP_SUMMARY
+          cat benchmark-results/valkey-stream.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Cleanup
         if: always()
