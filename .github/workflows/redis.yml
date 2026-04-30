@@ -92,6 +92,10 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
           cat benchmark-results/redis-stream.txt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "## Redis 16 Streams Results" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat benchmark-results/redis-16-streams.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Cleanup
         if: always()
