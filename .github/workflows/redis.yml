@@ -66,6 +66,10 @@ jobs:
             --command-ratio=5 \
             --hide-histogram | tee benchmark-results/redis-stream.txt
             
+          for i in {0..15}; do
+            docker exec redis-bench redis-cli XGROUP CREATE stream:test$i g1 '$' MKSTREAM
+          done
+          
           memtier_benchmark \
               --server=127.0.0.1 --port=6379 --protocol=redis \
               --threads=4 --clients=1 --requests=100000 \
