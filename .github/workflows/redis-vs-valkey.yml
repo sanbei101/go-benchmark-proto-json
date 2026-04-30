@@ -16,11 +16,9 @@ jobs:
 
       - name: Install benchmark tools
         run: |
-          curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
-          echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
-          sudo apt update
-          sudo apt install -y memtier-benchmark
-
+          wget https://github.com/redis/memtier_benchmark/releases/download/2.3.0/memtier-benchmark_2.3.0.noble_amd64.deb
+          sudo dpkg -i memtier-benchmark_2.3.0.noble_amd64.deb
+          
       - name: Show Docker versions
         run: |
           docker version
@@ -73,8 +71,9 @@ jobs:
             --threads=4 --clients=50 --requests=10000 \
             --key-minimum=1 --key-maximum=1000 \
             --command="XADD stream:__key__ * field1 __data__" \
+            --command-ratio=1 \
             --command="XRANGE stream:__key__ - + COUNT 10" \
-            --ratio=1:5 \
+            --command-ratio=5 \
             --hide-histogram | tee benchmark-results/redis-stream.txt
           
 
@@ -87,13 +86,14 @@ jobs:
             --hide-histogram | tee benchmark-results/valkey.txt
 
           memtier_benchmark \
-              --server=127.0.0.1 --port=6380 --protocol=redis \
-              --threads=4 --clients=50 --requests=10000 \
-              --key-minimum=1 --key-maximum=1000 \
-              --command="XADD stream:__key__ * field1 __data__" \
-              --command="XRANGE stream:__key__ - + COUNT 10" \
-              --ratio=1:5 \
-              --hide-histogram | tee benchmark-results/valkey-stream.txt
+            --server=127.0.0.1 --port=6380 --protocol=redis \
+            --threads=4 --clients=50 --requests=10000 \
+            --key-minimum=1 --key-maximum=1000 \
+            --command="XADD stream:__key__ * field1 __data__" \
+            --command-ratio=1 \
+            --command="XRANGE stream:__key__ - + COUNT 10" \
+            --command-ratio=5 \
+            --hide-histogram | tee benchmark-results/valkey-stream.txt
 
       - name: Show Redis results
         run: |
