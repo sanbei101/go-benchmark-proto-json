@@ -62,7 +62,7 @@ jobs:
           mkdir -p benchmark-results
           memtier_benchmark \
             --server=127.0.0.1 --port=6379 --protocol=redis \
-            --threads=4 --clients=50 --requests=10000 \
+            --threads=4 --clients=1 --requests=10000 \
             --data-size=256 --ratio=1:10 --pipeline=16 \
             --hide-histogram | tee benchmark-results/redis.txt
 
@@ -70,7 +70,7 @@ jobs:
   
           memtier_benchmark \
               --server=127.0.0.1 --port=6379 --protocol=redis \
-              --threads=4 --clients=50 --requests=10000 \
+              --threads=4 --clients=1 --requests=10000 \
               --command="XADD stream:test * field1 __data__" \
               --command-ratio=1 \
               --command="XREADGROUP GROUP g1 c1 COUNT 1000 STREAMS stream:test >" \
@@ -81,7 +81,7 @@ jobs:
         run: |
           memtier_benchmark \
             --server=127.0.0.1 --port=6380 --protocol=redis \
-            --threads=4 --clients=50 --requests=10000 \
+            --threads=4 --clients=1 --requests=10000 \
             --data-size=256 --ratio=1:10 --pipeline=16 \
             --hide-histogram | tee benchmark-results/valkey.txt
 
@@ -89,7 +89,7 @@ jobs:
 
           memtier_benchmark \
             --server=127.0.0.1 --port=6380 --protocol=redis \
-            --threads=4 --clients=50 --requests=10000 \
+            --threads=4 --clients=1 --requests=10000 \
             --key-minimum=1 --key-maximum=1000 \
             --command="XADD stream:test * field1 __data__" \  
             --command-ratio=1 \
