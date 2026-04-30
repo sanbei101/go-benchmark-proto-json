@@ -66,16 +66,16 @@ jobs:
             --command-ratio=5 \
             --hide-histogram | tee benchmark-results/redis-stream.txt
             
-          for i in {0..15}; do
+          for i in {1..16}; do
             docker exec redis-bench redis-cli XGROUP CREATE stream:test$i g1 '$' MKSTREAM
           done
-          
+
           memtier_benchmark \
               --server=127.0.0.1 --port=6379 --protocol=redis \
               --threads=4 --clients=1 --requests=100000 \
               --pipeline=1000 \
               --key-prefix="stream:test" \
-              --key-minimum=0 --key-maximum=15 \
+              --key-minimum=1 --key-maximum=16 \
               --command="XADD __key__ * field1 __data__" \
               --command-ratio=1 \
               --command="XREADGROUP GROUP g1 c__thread_id__ COUNT 1000 STREAMS __key__ >" \
